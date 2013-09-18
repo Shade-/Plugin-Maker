@@ -12,9 +12,9 @@ a:link,a:visited {
 	text-decoration:none
 }
 h2 {
-    margin:10px 0 0;
-    font-size:19px;
-    font-weight:200
+	margin:10px 0 0;
+	font-size:19px;
+	font-weight:200
 }
 @font-face {
 	font-family:icons;
@@ -75,16 +75,11 @@ h2 {
 	right:1px;
 	line-height:84px
 }
-#logo.locked:before {
-	content:"\d001"
-}
-#logo.start:before {
+#logo.index:before {
 	content:"\f121";
-	line-height:91px
 }
-#logo.step1:before {
-	content:"\c010";
-	line-height:91px
+#logo.settings:before {
+	content:"\f013";
 }
 #logo.step2:before {
 	content:"\c006";
@@ -200,5 +195,26 @@ input.textbox:focus {
 	box-shadow:0 0 3px #80bfff,0 1px 2px rgba(0,0,0,.15) inset
 }
 label {
-	font-size: 15px
+	font-size:15px
+}
+input[type="text"] {
+	min-height:34px;
+	padding:7px 8px;
+	outline:none;
+	color:#333;
+	background-color:#FFF;
+	background-repeat:no-repeat;
+	background-position:right center;
+	border:1px solid #CCC;
+	border-radius:3px;
+	box-shadow:inset 0 1px 2px rgba(0,0,0,0.075);
+	-moz-box-sizing:border-box;
+	box-sizing:border-box;
+	transition:all 0.15s ease-in;
+	-webkit-transition:all 0.15s ease-in 0;
+	vertical-align:middle;
+}
+input[type="text"]:focus {
+	border-color:#51a7e8;
+	box-shadow:inset 0 1px 2px rgba(0,0,0,0.075),0 0 5px rgba(81,167,232,0.5)
 }

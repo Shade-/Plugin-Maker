@@ -21,6 +21,9 @@ class PluginMaker {
 	// a comma-separated list of available pages
 	public $allowed_pages = "plugin,settings";
 	
+	// settings stored in cache
+	public $settings = "";
+	
 	// init the class
 	function __construct() {
 		// clear the input
@@ -33,6 +36,8 @@ class PluginMaker {
 		}
 		// validate the page
 		$this->validate_page($this->input['action']);
+		// populate settings
+		$this->show_settings();
 	}
 	
 	// parses inputs
@@ -72,6 +77,7 @@ class PluginMaker {
 	// validates a page to output
 	function validate_page($action) {
 		$this->action = !empty($action) && in_array($action, explode(",", $this->allowed_pages)) ? $action : BASENAME;
+		unset($this->input['action']);
 	}
 	
 	// reverts one or more steps
@@ -98,11 +104,36 @@ class PluginMaker {
 		file_put_contents(PLUGINPATH.$file, $content, FILE_APPEND);
 	}
 	
+	// caches settings
+	function cache_settings() {
+		$content = '<?php
+
+// This file contains the default settings and works as a file cache.
+// It\'s better to edit this file within the interface instead of editing it directly.
+
+$settings = array(
+';
+		foreach($this->input as $key => $value) {
+			$content .= "\t'$key' => '$value',\n";
+		}
+		$content .= ");\n\n?>";
+		file_put_contents(PM_CORE."/settings.php", $content);
+		// update on-the-fly
+		$this->show_settings();
+	}
+	
+	// shows settings stored in cache
+	function show_settings() {
+		// include lets us update settings in "real time"
+		include PM_CORE."/settings.php";
+		$this->settings = $settings;
+	}
+	
 	// debugs any data
 	function debug($data) {
-		echo "<pre>";
+		$this->get("header");
 		echo print_r($data);
-		echo "</pre>";
+		$this->get("footer");
 		exit;
 	}
 }

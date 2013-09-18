@@ -11,6 +11,7 @@ $page['class'] = !empty($action) ? $action : "start";
 // editing settings
 if($action == "settings") {
 	$page['title'] = "Settings";
+	if($PM->request_method == "post") $PM->cache_settings();
 }
 
 // creating a new plugin
