@@ -111,12 +111,7 @@ class PluginMaker {
 // This file contains the default settings and works as a file cache.
 // It\'s better to edit this file within the interface instead of editing it directly.
 
-$settings = array(
-';
-		foreach($this->input as $key => $value) {
-			$content .= "\t'$key' => '$value',\n";
-		}
-		$content .= ");\n\n?>";
+$settings = '.var_export($this->input, true)."\n\n?>";
 		file_put_contents(PM_CORE."/settings.php", $content);
 		// update on-the-fly
 		$this->show_settings();

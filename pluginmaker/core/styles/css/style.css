@@ -213,6 +213,7 @@ input[type="text"] {
 	transition:all 0.15s ease-in;
 	-webkit-transition:all 0.15s ease-in 0;
 	vertical-align:middle;
+	display:block;
 }
 input[type="text"]:focus {
 	border-color:#51a7e8;
