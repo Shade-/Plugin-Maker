@@ -11,18 +11,6 @@ The whole code behind Plugin Maker has been written from scratch so for example 
 
 It's in early stages development, therefore it shouldn't be tested as it does nothing other than creating the earlier structures of a MyBB plugin.
 
-## To-do list
-
-- [] Create a reliable file handling functions system
-- [x] Create the first steps
-- [] Create the hooks database and the hooks-picking system
-- [] Add settings support
-- [] Add templates support
-- [] Add css stylesheets support
-- [] Add PluginLibrary support
-- [] Add custom functions support
-- [] Other...
-
 # Developers
 
 ## Just the required
