@@ -7,7 +7,6 @@
 </head>
 
 <body>
-<div id="wrapitall">
 <div id="wrapper">
 <div id="container">
 <div id="logo" class="<? $PM->pageinfo("class"); ?>"></div>
