@@ -5,14 +5,15 @@
  */
 
 define("PM_CORE", dirname(__FILE__));
-define("PLUGINPATH", dirname(PM_CORE)."/plugins/");
-define("STEPPATH", PM_CORE."/styles/templates/steps/");
+define("PLUGINPATH", dirname(PM_CORE) . "/plugins/");
+define("STEPPATH", PM_CORE . "/styles/templates/steps/");
 
-class PluginMaker {
-
+class PluginMaker
+{
+	
 	// the inputs received
 	public $input = array();
-
+	
 	// the action, used to build every page
 	public $action = "";
 	
@@ -25,277 +26,470 @@ class PluginMaker {
 	// the file being worked on
 	public $file = "";
 	
-	// the directory of the file being worked on
-	public $filedir = "";
-	
 	// an array of messages to show
-	public $messagequeue = "";
+	public $messagequeue = array();
 	
-	// whether if there's an error or not
+	// whether there's an error or not
 	public $error = "";
 	
+	// an array of $PM->input[variables] "protected" from being empty. Will bypass the empty() check for clean_input()
+	public $emptyvars = array();
+	
+	public $fields = array(
+		'info' => array('name', 'description', 'namespace', 'version', 'author', 'authorsite', 'compatibility', 'pluginlibrary'),
+	);
+	
+	public $values = array();
+	
+	private $url = 'http://projectxmybb.altervista.org/pluginmaker';
+	
 	// init the class
-	function __construct() {
-		if(!session_id()) {
+	public function __construct()
+	{
+		if (!session_id()) {
 			session_start();
 		}
+		
 		// clear the input
 		$this->parse_incoming($_GET);
 		$this->parse_incoming($_POST);
-		if($_SERVER['REQUEST_METHOD'] == "POST") {
+		
+		if ($_SERVER['REQUEST_METHOD'] == "POST") {
 			$this->request_method = "post";
-		} else if($_SERVER['REQUEST_METHOD'] == "GET") {
+		}
+		else if ($_SERVER['REQUEST_METHOD'] == "GET") {
 			$this->request_method = "get";
 		}
-		// validate the page
+		
 		$this->validate_page($this->input['action']);
-		// populate settings
+		
 		$this->show_settings();
+		
 		// sets the file to work on
 		$this->setfile();
+		
 		// handle eventual messages to be shown
-		if($_SESSION['messagequeue']) {
+		if ($_SESSION['messagequeue']) {
+		
 			$this->message($_SESSION['messagequeue']['messages'], $_SESSION['messagequeue']['type']);
 			unset($_SESSION['messagequeue']);
+			
 		}
+		
+		return;
 	}
 	
 	// parses inputs
-	function parse_incoming($array) {
-		if(!is_array($array)) {
+	public function parse_incoming($array)
+	{
+		if (!is_array($array)) {
 			return;
 		}
-		foreach($array as $key => $val) {
+		
+		foreach ($array as $key => $val) {
 			$this->input[$key] = $val;
 		}
+		
+		return;
 	}
 	
 	// sanitizes all inputs received escaping what should be escaped and checking if this array is void
-	function clean_input() {
-		global $errors;
+	public function clean_input()
+	{
+		global $errors, $emptyvars;
+		
+		$emptyvars = $this->emptyvars;
+		
 		array_walk_recursive($this->input, function(&$value, $key) {
-			global $errors;
+		
+			global $errors, $emptyvars;
+			
 			$value = addslashes($value);
-			if(empty($value)) {
-				$errors[] = $key." input has been left empty";
+			
+			if (!$value and !in_array($key, $emptyvars)) {
+				$errors[] = $key . ' input has been left empty';
 			}
 		});
-		if($errors) {
+		
+		if ($errors) {
 			$this->message($errors, 'error');
 		}
+		
+		return;
 	}
 	
 	// builds a page
-	function build_page() {
+	public function build_page()
+	{
 		// header
-		$this->get("header");
+		$this->get('header');
+		
 		// eventual messages
-		if($this->messagequeue) {
-			$this->get("messages");
+		if ($this->messagequeue) {
+			$this->get('messages');
 		}
+		
 		// the actual page
-		$this->get($this->action);
+		$page = $this->get($this->action, true);
+		
+		if (!$page) {
+			$this->get('notfound');
+		}
+		
 		// footer
-		$this->get("footer");
+		$this->get('footer');
+		
 		exit;
 	}
 	
 	// gets a template
-	function get($template) {
+	public function get($template, $variable = false)
+	{
+		// globalizing $PM will let us use it in our templates
 		global $PM;
-		$file = PM_CORE."/styles/templates/ui/$template.php";
-		if(file_exists($file)) {
+		
+		$path = PM_CORE . '/styles/templates/ui/';
+		
+		if ($variable) {		
+			$path = PM_CORE . '/styles/templates/steps/';
+		}
+		
+		$file = $path . "/$template.php";
+		$exists = file_exists($file);
+		
+		if ($exists) {
 			require_once $file;
 		}
+		
+		return $exists;
 	}
 	
 	// echoes some page infos declared in every page such as icon class, page name, etc.
-	function pageinfo($info) {
+	public function pageinfo($info)
+	{
 		global $page;
-		if(!empty($info)) {
+		
+		if ($info) {
 			echo $page[$info];
 		}
+		
+		return;
 	}
 	
 	// validates a page to output
-	function validate_page($action) {
-		$this->action = !empty($action) ? $action : BASENAME;
+	public function validate_page($action)
+	{
+	
+		$this->action = BASENAME;
+		
+		if ($action) {
+			$this->action = $action;
+		}
+		
 		unset($this->input['action']);
+		
+		return;
 	}
 	
 	// sets the file we are working on in the session
-	function setfile($file="") {
+	public function setfile($file = "")
+	{
 		$file = (string) $file;
-		if(empty($file)) {
+		
+		if (!$file) {
+			
 			// if there's a namespace, use it
-			if(!empty($this->input['namespace'])) {
+			if ($this->input['namespace']) {
 				$file = (string) strtolower(str_replace(" ", "", $this->input['namespace']));
 			}
+			
 			// if there's a name, use it
-			elseif(!empty($this->input['name'])) {
+			elseif ($this->input['name']) {
 				$file = (string) strtolower(str_replace(" ", "", $this->input['name']));
 			}
-			// if we are working on a file already
-			elseif(!empty($_SESSION['pluginmaker']['file'])) {
+			// if we are working on a file already, use it
+			elseif ($_SESSION['pluginmaker']['file']) {
 				$file = $_SESSION['pluginmaker']['file'];
 			}
 		}
+		
 		// we don't want empty values for $this->file
-		if(!empty($file)) {
+		if ($file) {
+			
 			// clean up session
 			$this->clearfile();
+			
 			// set up our stuff to deal with
 			$_SESSION['pluginmaker']['file'] = $this->file = $file;
-			// if dirname returns ".", the file hasn't got a parent dir
-			if(dirname($this->file) != ".") {
-				$this->filedir = dirname($file);
-			}
+
 		}
+		
+		return;
 	}
 	
 	// clear out the file from the session
-	function clearfile() {
+	public function clearfile()
+	{
 		unset($_SESSION['pluginmaker']['file']);
-		$this->file = $this->filedir = "";
+		
+		$this->file = '';
+		
+		return;
 	}
 	
 	// writes something on a file as a "step"
-	function step_add($step) {
+	public function add_step($step)
+	{
 		// create the directory if not exists
-		if(!is_dir(PLUGINPATH.$this->filedir)) {
-			mkdir(PLUGINPATH.$this->filedir);
+		if (!is_dir(PLUGINPATH)) {
+			mkdir(PLUGINPATH);
 		}
+		
 		// get existing data
-		$content = $this->step_get("global");
+		$content = $this->get_step('global');
+		
 		// add our data to the existing one
 		$content[$step] = $this->input;
+		
 		$content = '<?php
 
 // This is the plugin in its PluginMaker\'s early shape. It is not recommended to edit this directly.
 
-$content = '.var_export($content, true)."
+$content = ' . var_export($content, true) . '
 
-?>";
-		file_put_contents(PLUGINPATH.$this->file.".php", $content);
+?>';
+
+		file_put_contents(PLUGINPATH . $this->file . '.php', $content);
+		
+		return;
 	}
 	
 	// loads a step's template. global stands for whole steps
-	function step_get($step) {
-		include PLUGINPATH.$this->file.".php";
-		if($step == "global") {
+	public function get_step($step)
+	{
+		include PLUGINPATH . $this->file . ".php";
+		
+		if ($step == "global") {
 			return $content;
 		}
+		
 		return $content[$step];
 	}
 	
+	public function delete_plugin($name = '', $silent = false)
+	{
+		if (!$name) {
+			return false;
+		}
+		
+		$delete = unlink(PLUGINPATH . $name . '.php');
+		
+		if ($silent) {
+			return $delete;
+		}
+		
+		if (!$delete) {
+			$this->message('The plugin could not be deleted due to an unknown error (insufficient permissions maybe?).', 'error');
+		}
+		else {
+			$this->message('The plugin has been deleted successfully.', 'success');
+		}
+		
+		return;
+	}
+	
 	// counts total steps present in a file
-	function step_count() {
-		$steps = $this->step_get("global");
+	public function count_step()
+	{
+		$steps = $this->get_step("global");
+		
 		return count($steps);
 	}
 	
-	// reverts one or more steps
-	function step_revert($steps) {
-		$new_content = "";
-		if(!empty($steps)) {
-			if(!is_array($steps)) {
-				$steps = array($steps);
-			}
-			$matches = $this->step_show();
-			$toremove = array_intersect($matches[1], $steps);
-			// remove the old steps
-			foreach($toremove as $key => $match) {
-				$new_content = str_ireplace($matches[0][$key], "", $old_content);
-			}
-		}
-		file_put_contents(PLUGINPATH.$this->file, $new_content);
-	}
-	
 	// caches settings
-	function cache_settings() {
+	public function cache_settings()
+	{
 		$content = '<?php
 
 // This file contains the default settings and works as a file cache. Do not edit directly.
 
-$settings = '.var_export($this->input, true)."
+$settings = ' . var_export($this->input, true) . "
 
 ?>";
-		file_put_contents(PM_CORE."/settings.php", $content);
+		file_put_contents(PM_CORE . "/settings.php", $content);
+		
 		// update on-the-fly
 		$this->show_settings();
 	}
 	
 	// shows settings stored in cache
-	function show_settings() {
-		include PM_CORE."/settings.php";
+	public function show_settings()
+	{
+		include PM_CORE . "/settings.php";
+		
 		$this->settings = $settings;
+		
+		return;
 	}
 	
 	// sets one or more messages to show
-	function message($messages, $type, $inline=0) {
+	public function message($messages, $type, $inline = 0)
+	{
 		$this->messagequeue = $_SESSION['messagequeue'] = array(
 			'messages' => $messages,
 			'type' => $type
 		);
-		if($type == 'error') {			
+		
+		if ($type == 'error') {
 			$this->error = 1;
 		}
+		
 		// inline can be called directly from templates
-		if($inline) {
-			$this->get("messages");
+		if ($inline) {
+		
+			$this->get('messages');
 			unset($_SESSION['messagequeue']);
+			
 		}
+		
+		return;
 	}
 	
 	// gets a message out from an array of messages and their actions
-	function get_message($action) {
-		include PM_CORE."/lang.php";
+	public function get_message($action)
+	{
+		include PM_CORE . "/lang.php";
 		return $lang[$action];
 	}
 	
 	// get a clean list of plugins in the plugins dir
-	function get_plugins() {
+	public function get_plugins()
+	{
 		$files = $this->get_files();
-		if(!empty($files)) {
-			foreach($files as $plugin_file) {
-				include PLUGINPATH.$plugin_file;
-				if(!$content['info']) {
+		
+		if ($files) {
+		
+			foreach ($files as $plugin_file) {
+			
+				include PLUGINPATH . $plugin_file;
+				
+				if (!$content['info']) {
 					continue;
 				}
-				echo $content['info']['name']."<br>";
+				
+				echo '<a href="edit.php?action=info&namespace=' . $content['info']['namespace'] . '">' . $content['info']['name'] . '</a><br>';
 			}
-		} else {
+		}
+		else {
 			$this->message("There aren't any saved plugins at the moment.", "error", 1);
 		}
+		
+		return;
 	}
 	
 	// get a list of the php files which exist in the plugins directory
-	function get_files() {
+	public function get_files()
+	{
 		$dir = @opendir(PLUGINPATH);
-		if($dir) {
-			while($file = readdir($dir)) {
+		
+		if ($dir) {
+		
+			while ($file = readdir($dir)) {
+			
 				$ext = $this->get_extension($file);
-				if($ext == "php") {
+				
+				if ($ext == "php") {
 					$pluginlist[] = $file;
 				}
+				
 			}
+			
 			@sort($pluginlist);
+			
 		}
+		
 		@closedir($dir);
 		
 		return $pluginlist;
+		
 	}
 	
 	// get the extension of a file
-	function get_extension($file) {
+	public function get_extension($file)
+	{
 		return pathinfo($file, PATHINFO_EXTENSION);
 	}
 	
-	// debugs any data
-	function debug($data) {
-		echo "<pre>";
+	// redirect the user where he should go
+	public function redirect($url)
+	{
+		header("Location: ".$url);
+		exit;
+	}
+	
+	// load scripts based on the page we're viewing
+	public function load_scripts()
+	{
+		// an array of css => script occurencies to include in the page
+		$content = array();
+		
+		if ($this->action) {
+		
+			$content[$this->url . '/core/styles/scripts/chosen/chosen.min.css'] = $this->url . '/core/styles/scripts/chosen/chosen.jquery.min.js';
+			$content['plain'] = '<script type="text/javascript">
+jQuery(document).ready(function($) {
+	$("select").chosen();
+});
+</script>';
+			
+		}
+		
+		foreach ($content as $css => $script) {
+			
+			if ($script) {
+			
+				if ($css == 'plain') {
+					echo $script;
+				}
+				else {
+					
+					echo "<script type='text/javascript' src='$script'></script>";
+				}
+			}
+			
+			if ($css and $css != 'plain') {
+				echo "<link href='$css' rel='stylesheet' type='text/css'>";
+			}
+			
+		}
+			
+		return;		
+	}
+	
+	// load a list of hooks	
+	public function load_hooks()
+	{
+		include PM_CORE . '/styles/templates/steps/hookslist.php';
+		
+		foreach ($hookslist as $hooks) {
+			
+			//echo "<optgroup label='$cat'>";
+			
+			//foreach ($hooks as $hook) {
+				echo "<option value='$hooks'>$hooks</option>";
+			//}
+			
+			//echo "</optgroup>";
+			
+		}
+	}
+	
+	// debug any data
+	public function debug($data)
+	{
+		echo '<pre>';
 		print_r($data);
-		echo "</pre>";
+		echo '</pre>';
 		exit;
 	}
 }
@@ -303,3 +497,5 @@ $settings = '.var_export($this->input, true)."
 // initialize the class
 global $PM;
 $PM = new PluginMaker();
+
+?>

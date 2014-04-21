@@ -1,7 +1,10 @@
 <?
 
 $lang = array(
-	'info' => 'First step done, basic informations added. Now you should customize a bit more your plugin.'
+	'info' => 'Basic informations have been saved successfully.',
+	'pl_settings' => 'Settings have been saved successfully.',
+	'pl_templates' => 'Templates have been saved successfully.',
+	'functions' => 'Functions have been saved successfully.'
 );
 
 ?>
